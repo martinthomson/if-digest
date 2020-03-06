@@ -5,8 +5,8 @@ docname: draft-thomson-http-if-digest
 category: info
 
 ipr: trust200902
-area: General
-workgroup: TODO Working Group
+area: ART
+workgroup: HTTPBIS
 keyword: Internet-Draft
 
 stand_alone: yes
@@ -57,7 +57,7 @@ informative:
 --- abstract
 
 Header fields are defined for making HTTP requests that are conditional on the
-content of a representation or resource.
+content of the selected representation of a resource.
 
 --- middle
 

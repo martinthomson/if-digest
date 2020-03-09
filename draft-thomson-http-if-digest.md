@@ -1,7 +1,7 @@
 ---
 title: "Conditional HTTP Requests Using Digests"
 abbrev: "Digest Conditionals"
-docname: draft-thomson-http-if-digest
+docname: draft-thomson-http-if-digest-latest
 category: info
 
 ipr: trust200902

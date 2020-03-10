@@ -98,7 +98,7 @@ the selected representation is not equal to a value specified in the If-Digest
 header field.
 
 The If-Digest conditional might also be used when a client requests a
-representation using the GET method where the digest of the representation need
+representation using the GET method where the digest of the representation needs
 to match a known value.  For instance, if a resource is referenced using
 Subresource Integrity {{SRI}} or certain Content Security Policy {{CSP}} rules,
 a response containing a different representation would only be discarded by the

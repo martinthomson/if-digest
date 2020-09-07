@@ -90,7 +90,7 @@ that are not expected by a client.  For instance, a PATCH {{?PATCH=RFC5789}}
 request might include the conditional If-Match header field to ensure that the
 requested changes are only applied if the selected representation is what the
 client expects, preventing mutation of a resource that might be in an state that
-is incompatible with the desire change.
+is incompatible with the desired change.
 
 The If-Digest conditional header field allows a client to indicate the digest of
 representations that the request can be applied to.  The precondition fails if

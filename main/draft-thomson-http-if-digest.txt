@@ -1,0 +1,392 @@
+
+
+
+
+HTTPBIS                                                       M. Thomson
+Internet-Draft                                                   Mozilla
+Intended status: Informational                          7 September 2020
+Expires: 11 March 2021
+
+
+                Conditional HTTP Requests Using Digests
+                  draft-thomson-http-if-digest-latest
+
+Abstract
+
+   Header fields are defined for making HTTP requests that are
+   conditional on the content of the selected representation of a
+   resource.
+
+Note to Readers
+
+   Discussion of this document takes place on the HTTP Working Group
+   mailing list (ietf-http-wg@w3.org), which is archived at
+   https://lists.w3.org/Archives/Public/ietf-http-wg/
+   (https://lists.w3.org/Archives/Public/ietf-http-wg/).
+
+   Source for this draft and an issue tracker can be found at
+   https://github.com/martinthomson/if-digest
+   (https://github.com/martinthomson/if-digest).
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 11 March 2021.
+
+Copyright Notice
+
+   Copyright (c) 2020 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+
+
+
+Thomson                   Expires 11 March 2021                 [Page 1]
+
+Internet-Draft             Digest Conditionals            September 2020
+
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Simplified BSD License text
+   as described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Simplified BSD License.
+
+Table of Contents
+
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   2
+   2.  Conventions and Definitions . . . . . . . . . . . . . . . . .   2
+   3.  If-Digest Header Field  . . . . . . . . . . . . . . . . . . .   3
+   4.  If-None-Digest Header Field . . . . . . . . . . . . . . . . .   3
+   5.  Common Properties . . . . . . . . . . . . . . . . . . . . . .   4
+   6.  Security Considerations . . . . . . . . . . . . . . . . . . .   5
+   7.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .   5
+     7.1.  If-Digest Registration  . . . . . . . . . . . . . . . . .   5
+     7.2.  If-None-Digest Registration . . . . . . . . . . . . . . .   5
+   8.  References  . . . . . . . . . . . . . . . . . . . . . . . . .   5
+     8.1.  Normative References  . . . . . . . . . . . . . . . . . .   6
+     8.2.  Informative References  . . . . . . . . . . . . . . . . .   6
+   Acknowledgments . . . . . . . . . . . . . . . . . . . . . . . . .   7
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .   7
+
+1.  Introduction
+
+   Conditional HTTP requests [HTTP] allow a client to specify
+   preconditions on processing of a request.  Conditional requests can
+   be used to avoid making requests that could be unnecessary based on
+   information available to the server, but not the client.
+
+   This document defines new If-Digest and If-None-Digest preconditions
+   that are based on the digest of selected representations, as
+   described in [DIGEST].  These preconditions create a concise and
+   strong binding to the content of a representation that uses a
+   cryptographic hash function.
+
+2.  Conventions and Definitions
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in BCP
+   14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals, as shown here.
+
+
+
+
+
+Thomson                   Expires 11 March 2021                 [Page 2]
+
+Internet-Draft             Digest Conditionals            September 2020
+
+
+3.  If-Digest Header Field
+
+   Conditional requests can be used to prevent actions that involve
+   representations that are not expected by a client.  For instance, a
+   PATCH [PATCH] request might include the conditional If-Match header
+   field to ensure that the requested changes are only applied if the
+   selected representation is what the client expects, preventing
+   mutation of a resource that might be in an state that is incompatible
+   with the desired change.
+
+   The If-Digest conditional header field allows a client to indicate
+   the digest of representations that the request can be applied to.
+   The precondition fails if the selected representation is not equal to
+   a value specified in the If-Digest header field.
+
+   The If-Digest conditional might also be used when a client requests a
+   representation using the GET method where the digest of the
+   representation needs to match a known value.  For instance, if a
+   resource is referenced using Subresource Integrity [SRI] or certain
+   Content Security Policy [CSP] rules, a response containing a
+   different representation would only be discarded by the client.
+
+   The format of the If-Digest header is a structured header [SH]
+   dictionary with keys being the hash algorithm identifier (from
+   [DIGEST]).  Values are byte sequences that contain the value of the
+   digest.  For example (with line wrapping):
+
+   If-Digest:
+     sha-256=:ypeBEsobvcr6wjGzmiPcTaeG7/gUfE5yuYB3ha/uSLs=:
+
+   Multiple digests MAY be included with If-Digest; the precondition
+   succeeds if the digest of the selected representation matches any of
+   the included values.
+
+4.  If-None-Digest Header Field
+
+   A conditional GET request can be used to avoid transferring a
+   representation when that representation is already known to the
+   client.  For instance, the If-None-Match header field can carry an
+   ETag that corresponds to content known to a client.
+
+   The If-None-Digest conditional header field indicates the digest of
+   representations that the server is requested to not apply the method
+   to.  The precondition fails if the digest of the selected
+   representation is equal to any of the digests indicated in the If-
+   None-Digest header field.
+
+
+
+
+
+Thomson                   Expires 11 March 2021                 [Page 3]
+
+Internet-Draft             Digest Conditionals            September 2020
+
+
+   The If-None-Digest condition might be used as a validator as part of
+   a GET or HEAD request.  A client includes the digest of a
+   representation that is already available to it - perhaps in a cache -
+   the server MUST respond with a 304 (Not Modified) status code if the
+   digest of the selected representation is identical to a provided
+   value.
+
+   The format of the If-None-Digest header is a structured header [SH]
+   dictionary with keys being the hash algorithm identifier (from
+   [DIGEST]).  Values are byte sequences that contain the value of the
+   digest.  For example (with line wrapping):
+
+   If-None-Digest:
+     id-sha-256=:v106/7c+/S7Gw2rTES3ZM+/tY8Thy//PqI4nWcFE8tg=:
+
+   Multiple digests MAY be included with If-None-Digest; the
+   precondition succeeds if the digest of the selected representation
+   matches none of the included values.
+
+   If-None-Digest can be used for validation of a stored response; see
+   Section 4.3 of [CACHING].  A resource that supports validation using
+   If-None-Digest MUST list the field in the Vary response header field
+   to ensure that caches that don't understand If-None-Digest don't
+   generate responses from cache that violate the precondition.  A cache
+   can add If-None-Digest to a request that it issues for the purposes
+   of validating a cached response.
+
+5.  Common Properties
+
+   The If-Digest and If-None-Digest fields are both preconditions and so
+   share a number of common characteristics.
+
+   As a precondition, the If-Digest and If-None-Digest fields only apply
+   to requests and might be ineffective if included in trailers.
+
+   The If-Digest and If-None-Digest preconditions can be evaluated in
+   any order relative to other preconditions.  However, as they apply to
+   a selected precondition, it might be more efficient to assign a lower
+   precedence than the preconditions defined in Section 9.2 of [HTTP].
+
+   A cacheable response generated by a server that conditions responses
+   on a precondition field MUST include the relevant fields in a Vary
+   field.
+
+
+
+
+
+
+
+
+Thomson                   Expires 11 March 2021                 [Page 4]
+
+Internet-Draft             Digest Conditionals            September 2020
+
+
+6.  Security Considerations
+
+   The strength of the digest algorithm determines how reliable these
+   conditions are.  The use of digests for conditional requests depends
+   on the digest algorithm providing strong collision and second pre-
+   image resistance.  These are not properties guaranteed by the MD5,
+   CRC32C, SHA, and ADLER32 digest algorithms.  If-Digest and If-None-
+   Digest MUST NOT be used with MD5, CRC32C, SHA, or ADLER32 as there
+   can be no reasonable expectation that matching the value of a digest
+   would correspond to matching the content of a representation.
+
+   Other digest algorithms could be found to be similarly weak over
+   time.  This specification allows for multiple digests to be indicated
+   using different digest algorithms.  A client that is uncertain of
+   server support for newer digest algorithms can include digests that
+   use both old and new functions.  A server that is aware of weaknesses
+   in a given digest algorithm can ignore values based on that algorithm
+   when the client provides values that use digest algorithms that are
+   known to be strong.  A server MAY reject a request with a 4xx status
+   code if only digest algorithms that are known to be weak are used in
+   preconditions.
+
+7.  IANA Considerations
+
+   This section registers two HTTP field names in the "Hypertext
+   Transfer Protocol (HTTP) Field Name Registry" established by [HTTP].
+
+7.1.  If-Digest Registration
+
+   The If-Digest field is registered as follows:
+
+   Field name:  If-Digest
+
+   Status:  permanent
+
+   Specification document(s):  This document, Section 3
+
+7.2.  If-None-Digest Registration
+
+   The If-None-Digest field is registered as follows:
+
+   Field name:  If-None-Digest
+
+   Status:  permanent
+
+   Specification document(s):  This document, Section 4
+
+8.  References
+
+
+
+Thomson                   Expires 11 March 2021                 [Page 5]
+
+Internet-Draft             Digest Conditionals            September 2020
+
+
+8.1.  Normative References
+
+   [CACHING]  Fielding, R., Nottingham, M., and J. Reschke, "HTTP
+              Caching", Work in Progress, Internet-Draft, draft-ietf-
+              httpbis-cache-11, 27 August 2020, <http://www.ietf.org/
+              internet-drafts/draft-ietf-httpbis-cache-11.txt>.
+
+   [DIGEST]   Polli, R. and L. Pardue, "Digest Headers", Work in
+              Progress, Internet-Draft, draft-ietf-httpbis-digest-
+              headers-02, 9 March 2020, <http://www.ietf.org/internet-
+              drafts/draft-ietf-httpbis-digest-headers-02.txt>.
+
+   [HTTP]     Fielding, R., Nottingham, M., and J. Reschke, "HTTP
+              Semantics", Work in Progress, Internet-Draft, draft-ietf-
+              httpbis-semantics-11, 27 August 2020,
+              <http://www.ietf.org/internet-drafts/draft-ietf-httpbis-
+              semantics-11.txt>.
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119,
+              DOI 10.17487/RFC2119, March 1997,
+              <https://www.rfc-editor.org/info/rfc2119>.
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
+              May 2017, <https://www.rfc-editor.org/info/rfc8174>.
+
+   [SH]       Nottingham, M. and P. Kamp, "Structured Field Values for
+              HTTP", Work in Progress, Internet-Draft, draft-ietf-
+              httpbis-header-structure-19, 3 June 2020,
+              <http://www.ietf.org/internet-drafts/draft-ietf-httpbis-
+              header-structure-19.txt>.
+
+8.2.  Informative References
+
+   [CSP]      West, M., "Content Security Policy Level 3", W3C ED, 28
+              February 2019, <https://w3c.github.io/webappsec-csp/>.
+
+   [PATCH]    Dusseault, L. and J. Snell, "PATCH Method for HTTP",
+              RFC 5789, DOI 10.17487/RFC5789, March 2010,
+              <https://www.rfc-editor.org/info/rfc5789>.
+
+   [SRI]      Akhawe, D., Braun, F., Marier, F., and J. Weinberger,
+              "Subresource Integrity", W3C ED, 4 January 2020,
+              <https://w3c.github.io/webappsec-subresource-integrity/>.
+
+
+
+
+
+
+Thomson                   Expires 11 March 2021                 [Page 6]
+
+Internet-Draft             Digest Conditionals            September 2020
+
+
+Acknowledgments
+
+   TODO acknowledge someone.
+
+Author's Address
+
+   Martin Thomson
+   Mozilla
+
+   Email: mt@lowentropy.net
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Thomson                   Expires 11 March 2021                 [Page 7]

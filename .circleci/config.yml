@@ -2,8 +2,11 @@ version: 2
 jobs:
   build:
     docker:
-      - image: martinthomson/i-d-template:latest
+      - image: martinthomson/i-d-template-action:latest
+    resource_class: small
     working_directory: ~/draft
+    environment:
+      KRAMDOWN_REFCACHEDIR: ~/.cache/xml2rfc
 
     steps:
       - run:
@@ -18,7 +21,6 @@ jobs:
           keys:
             - v2-cache-git-{{ .Branch }}-{{ .Revision }}
             - v2-cache-git-{{ .Branch }}
-            - v2-cache-git-master
             - v2-cache-git-
 
       - restore_cache:
@@ -31,6 +33,8 @@ jobs:
       - run:
           name: Tag Checkout
           command: |
+            mkdir -p $HOME/.ssh
+            echo 'github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==' >> ~/.ssh/known_hosts
             if [ -n "$CIRCLE_TAG" ] && [ -d .git ]; then
               remote=$(echo "$CIRCLE_REPOSITORY_URL" | \
                        sed -e 's,/^git.github.com:,https://github.com/,')
@@ -43,7 +47,7 @@ jobs:
       # Build txt and html versions of drafts
       - run:
           name: "Build Drafts"
-          command: "make 'CLONE_ARGS=--reference ~/git-reference'"
+          command: make
 
       # Update editor's copy on gh-pages
       - run:
@@ -61,10 +65,10 @@ jobs:
               make upload
             fi
 
-      # Save GitHub issues
+      # Archive GitHub Issues
       - run:
-          name: "Save GitHub Issues"
-          command: "make issues || make issues DISABLE_ISSUE_FETCH=true && make gh-issues"
+          name: "Archive GitHub Issues"
+          command: "make archive || make archive DISABLE_ARCHIVE_FETCH=true && make gh-archive"
 
       # Create and store artifacts
       - run:
@@ -76,7 +80,7 @@ jobs:
 
       - run:
           name: "Prepare for Caching"
-          command: "git gc --auto"
+          command: "git reflog expire --expire=now --all && git gc --prune=now"
 
       - save_cache:
           name: "Saving Cache - Git"

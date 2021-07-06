@@ -5,8 +5,6 @@ jobs:
       - image: martinthomson/i-d-template-action:latest
     resource_class: small
     working_directory: ~/draft
-    environment:
-      KRAMDOWN_REFCACHEDIR: ~/.cache/xml2rfc
 
     steps:
       - run:
@@ -43,10 +41,6 @@ jobs:
             fi
 
       - checkout
-
-      - run:
-          name: "Create Cache Directory"
-          command: "mkdir -p $KRAMDOWN_REFCACHEDIR"
 
       # Build txt and html versions of drafts
       - run:

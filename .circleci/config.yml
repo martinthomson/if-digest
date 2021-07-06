@@ -29,10 +29,6 @@ jobs:
             - v1-cache-references-{{ epoch }}
             - v1-cache-references-
 
-      - run:
-          name: "Setup Cache"
-          command: "mkdir -p $KRAMDOWN_REFCACHEDIR"
-
       # Workaround for https://discuss.circleci.com/t/22437
       - run:
           name: Tag Checkout
@@ -47,6 +43,10 @@ jobs:
             fi
 
       - checkout
+
+      - run:
+          name: "Create Cache Directory"
+          command: "mkdir -p $KRAMDOWN_REFCACHEDIR"
 
       # Build txt and html versions of drafts
       - run:
